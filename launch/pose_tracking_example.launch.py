@@ -6,11 +6,8 @@ import launch_param_builder
 from ament_index_python.packages import get_package_share_directory
 
 def launch_setup(context, *args, **kwargs):
-    # to get this as a plain Python string you can use context.launch_configurations instead
-    # but we need it for the ros2_control nodes' IfCondition
-    fake_hardware_lc = launch.substitutions.LaunchConfiguration("use_fake_hardware") 
-    # for example, this should just be a string
-    ur_type = context.launch_configurations["ur_type"]
+    #can also get this with launch.substitutions.LaunchConfiguration("ur_type") if that data type is needed (for IfCondition, etc)
+    ur_type = context.launch_configurations["ur_type"] 
     
     init_pos_file = os.path.join(
         get_package_share_directory("servo_ur_pose_tracking"),
@@ -21,7 +18,7 @@ def launch_setup(context, *args, **kwargs):
     ur_subs = dict(
         name="ur", 
         ur_type=ur_type,
-        use_fake_hardware=fake_hardware_lc.perform(context),
+        use_fake_hardware="True",
         initial_positions_file=init_pos_file
     )
 
@@ -34,7 +31,7 @@ def launch_setup(context, *args, **kwargs):
     robot_description_semantic = launch_param_builder.ParameterBuilder("ur_moveit_config").xacro_parameter(
         parameter_name="robot_description_semantic",
         file_path="srdf/ur.srdf.xacro",
-        mappings=dict(name="ur", prefix="")
+        mappings=dict(name="ur")
     ).to_dict()
     
     servo_params = {
@@ -106,15 +103,6 @@ def launch_setup(context, *args, **kwargs):
     fake_ros2_control_node = launch_ros.actions.Node(
         package="controller_manager",
         executable="ros2_control_node",
-        condition=launch.conditions.IfCondition(fake_hardware_lc),
-        parameters=[robot_description, update_rate_config_file, ros2_controllers_path],
-        output="screen",
-    )
-
-    real_ros2_control_node = launch_ros.actions.Node(
-        package="ur_robot_driver",
-        executable="ur_ros2_control_node",
-        condition=launch.conditions.UnlessCondition(fake_hardware_lc),
         parameters=[robot_description, update_rate_config_file, ros2_controllers_path],
         output="screen",
     )
@@ -142,7 +130,6 @@ def launch_setup(context, *args, **kwargs):
             static_tf,
             pose_tracking_node,
             fake_ros2_control_node,
-            real_ros2_control_node,
             joint_state_broadcaster_spawner,
             arm_controller_spawner,
             robot_state_publisher,
@@ -152,20 +139,13 @@ def launch_setup(context, *args, **kwargs):
 def generate_launch_description():
     
     declared_args = []
-    
-    declared_args.append(
-        launch.actions.DeclareLaunchArgument(
-            "use_fake_hardware", 
-            default_value="True"
-        )
-    )
 
     declared_args.append(
         launch.actions.DeclareLaunchArgument(
             "ur_type",
             default_value="ur5e",
             description="Type/series of used UR robot.",
-            choices=["ur5", "ur5e"] #seems like the UR3 gets close to the base cyl singularity
+            choices=["ur3", "ur3e", "ur5", "ur5e", "ur10", "ur10e", "ur16e"] #seems like the UR3 gets close to the base cyl singularity
         )
     )
 
