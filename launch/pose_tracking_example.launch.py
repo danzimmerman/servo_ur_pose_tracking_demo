@@ -6,7 +6,11 @@ import launch_param_builder
 from ament_index_python.packages import get_package_share_directory
 
 def launch_setup(context, *args, **kwargs):
-    #can also get this with launch.substitutions.LaunchConfiguration("ur_type") if that data type is needed (for IfCondition, etc)
+    
+    # Arguments for use in further Launch API can be accessed this way, can be converted to concrete text with launch_rviz_lc.perform(context)
+    launch_rviz_lc = launch.substitutions.LaunchConfiguration("launch_rviz")
+
+    # Already converted to context can be accessed this way
     ur_type = context.launch_configurations["ur_type"] 
     
     init_pos_file = os.path.join(
@@ -46,15 +50,16 @@ def launch_setup(context, *args, **kwargs):
         get_package_share_directory("moveit_servo")
         + "/config/demo_rviz_pose_tracking.rviz"
     )
-    # rviz_node = launch_ros.actions.Node(
-    #     package="rviz2",
-    #     executable="rviz2",
-    #     name="rviz2",
-    #     # prefix=['xterm -e gdb -ex run --args'],
-    #     output="log",
-    #     arguments=["-d", rviz_config_file],
-    #     parameters=[moveit_config.to_dict()],
-    # )
+    rviz_node = launch_ros.actions.Node(
+        package="rviz2",
+        executable="rviz2",
+        name="rviz2",
+        # prefix=['xterm -e gdb -ex run --args'],
+        output="log",
+        arguments=["-d", rviz_config_file],
+        condition=launch.conditions.IfCondition(launch_rviz_lc),
+        parameters=[robot_description, robot_description_semantic], #could also just allow these to come in on topics, but probably faster here
+    )
 
     # Publishes tf's for the robot
     robot_state_publisher = launch_ros.actions.Node(
@@ -126,7 +131,7 @@ def launch_setup(context, *args, **kwargs):
     )
 
     return [
-            #rviz_node,
+            rviz_node,
             static_tf,
             pose_tracking_node,
             fake_ros2_control_node,
@@ -139,7 +144,12 @@ def launch_setup(context, *args, **kwargs):
 def generate_launch_description():
     
     declared_args = []
-
+    declared_args.append(
+        launch.actions.DeclareLaunchArgument(
+            "launch_rviz",
+            default_value="True"
+        )
+    )
     declared_args.append(
         launch.actions.DeclareLaunchArgument(
             "ur_type",
