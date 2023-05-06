@@ -10,7 +10,7 @@ def launch_setup(context, *args, **kwargs):
     ur_type = context.launch_configurations["ur_type"] 
     
     init_pos_file = os.path.join(
-        get_package_share_directory("servo_ur_pose_tracking"),
+        get_package_share_directory("servo_ur_pose_tracking_demo"),
         "config",
         "initial_positions.yaml",
     )
@@ -35,7 +35,7 @@ def launch_setup(context, *args, **kwargs):
     ).to_dict()
     
     servo_params = {
-        "moveit_servo": launch_param_builder.ParameterBuilder("servo_ur_pose_tracking")
+        "moveit_servo": launch_param_builder.ParameterBuilder("servo_ur_pose_tracking_demo")
         .yaml("config/pose_tracking_settings.yaml")
         .yaml("config/ur_simulated_config_pose_tracking.yaml")
         .to_dict()
